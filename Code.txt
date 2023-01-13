@@ -1,0 +1,119 @@
+china<-read.csv("china.csv",header=TRUE)
+india<-read.csv("india.csv",header=TRUE)
+names(china)[1]<-"V91"
+names(india)[1]<-"V91"
+china[china==999]<-NA
+india[india==999]<-NA
+library(mice)
+pMiss <- function(x) {sum(is.na(x))/length(x)*100}
+apply(china,2,pMiss)
+apply(india,2,pMiss)
+china<-china[,-match("V317",names(china))]
+india<-india[,-match("V116",names(india))]
+rmischina<-apply(china,1,pMiss)
+rmisindia<-apply(india,1,pMiss)
+which(rmischina>=20)
+which(rmisindia>=20)
+china<-china[-which(rmischina>=20),]
+india<-india[-which(rmisindia>=20),]
+xyz<-as.data.frame(lapply(china, factor))
+abc<-as.data.frame(lapply(india, factor))
+mice.data<- mice(xyz,m = 1,maxit = 2,method = "polr",seed = 188,nnet.MaxNWts = 5000)
+mice.data2<- mice(abc,m = 1,maxit = 2,method = "polr",seed = 188,nnet.MaxNWts = 5000) 
+chinanew<-complete(mice.data, 1)
+indianew<-complete(mice.data2, 1)
+write.csv(chinanew, file = "chinanew.csv")
+write.csv(indianew, file = "indianew.csv")
+chinanew<-read.csv("chinanew.csv",header=TRUE)
+indianew<-read.csv("indianew.csv",header=TRUE)
+moralchi<-chinanew[,match(c("V312","V313","V301","V302","V303","V304","V305","V306","V316"),names(chinanew))]
+medmorchi<-apply(apply(moralchi,2,as.integer),1,median)
+moralind<-indianew[,match(c("V312","V313","V301","V302","V303","V304","V305","V306","V316"),names(indianew))]
+medmorind<-apply(apply(moralind,2,as.integer),1,median)
+
+mirchi<-chinanew[,match(c("V296","V297","V298","V299","V300","V314","V318","V319"),names(chinanew))]
+medmirchi<-apply(apply(mirchi,2,as.integer),1,median)
+mirind<-indianew[,match(c("V296","V297","V298","V299","V300","V314","V318","V319"),names(indianew))]
+medmirind<-apply(apply(mirind,2,as.integer),1,median)
+
+medmirchi[which(medmirchi%%1!=0)]<-medmirchi[which(medmirchi%%1!=0)]+sample(c(0.5,-0.5),1)
+medmirind[which(medmirind%%1!=0)]<-medmirind[which(medmirind%%1!=0)]+sample(c(0.5,-0.5),1)
+
+polchi<-chinanew[,match("V311",names(chinanew))]
+polind<-indianew[,match("V311",names(indianew))]
+
+worchi<-chinanew[,match("V315",names(chinanew))]
+worind<-indianew[,match("V315",names(indianew))]
+
+
+
+par(mfrow=c(1,2))
+
+barplot(height = table(factor(medmorchi, levels=min(medmorchi):max(medmorchi)))/length(medmorchi),
+        ylab = "proportion",
+        xlab = "values",
+        main = "histogram of medmorchi (proportions)",
+	  ylim=c(0,0.8))
+barplot(height = table(factor(medmorind, levels=min(medmorind):max(medmorind)))/length(medmorind),
+        ylab = "proportion",
+        xlab = "values",
+        main = "histogram of medmorind (proportions)",
+        ylim=c(0,0.8))
+
+
+barplot(height = table(factor(medmirchi, levels=min(medmirchi):max(medmirchi)))/length(medmirchi),
+        ylab = "proportion",
+        xlab = "values",
+        main = "histogram of medmirchi (proportions)",
+	  ylim=c(0,0.8))
+barplot(height = table(factor(medmirind, levels=min(medmirind):max(medmirind)))/length(medmirind),
+        ylab = "proportion",
+        xlab = "values",
+        main = "histogram of medmirind (proportions)",
+        ylim=c(0,0.8))
+
+barplot(height = table(factor(polchi, levels=min(polchi):max(polchi)))/length(polchi),
+        ylab = "proportion",
+        xlab = "values",
+        main = "histogram of polchi (proportions)",
+	  ylim=c(0,0.8))
+barplot(height = table(factor(polind, levels=min(polind):max(polind)))/length(polind),
+        ylab = "proportion",
+        xlab = "values",
+        main = "histogram of polind (proportions)",
+        ylim=c(0,0.8))
+
+barplot(height = table(factor(worchi, levels=min(worchi):max(worchi)))/length(worchi),
+        ylab = "proportion",
+        xlab = "values",
+        main = "histogram of worchi (proportions)",
+	  ylim=c(0,0.8))
+barplot(height = table(factor(worind, levels=min(worind):max(worind)))/length(worind),
+        ylab = "proportion",
+        xlab = "values",
+        main = "histogram of worind (proportions)",
+        ylim=c(0,0.8))
+
+library(MCMCpack)
+sexchi<-chinanew[,match("V353",names(chinanew))]
+sexind<-indianew[,match("V353",names(indianew))]
+
+agechi<-chinanew[,match("V355",names(chinanew))]
+ageind<-indianew[,match("V355",names(indianew))]
+result1chi<-MCMCoprobit(medmorchi~sexchi+agechi+sexchi*agechi)
+summary(result1chi)
+
+result1ind<-MCMCoprobit(medmorind~sexind+ageind+sexind*ageind)
+summary(result1ind)
+
+result2chi<-MCMCoprobit(medmirchi~sexchi+agechi+sexchi*agechi)
+summary(result2ind)
+
+result2ind<-MCMCoprobit(medmirind~sexind+ageind+sexind*ageind)
+summary(result2ind)
+
+result3chi<-MCMCoprobit(polchi~sexchi+agechi+sexchi*agechi)
+summary(result3ind)
+
+result3ind<-MCMCoprobit(polind~sexind+ageind+sexind*ageind)
+summary(result3ind)
